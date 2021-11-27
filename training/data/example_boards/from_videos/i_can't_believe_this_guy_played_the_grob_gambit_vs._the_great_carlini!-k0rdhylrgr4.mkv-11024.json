@@ -1,0 +1,38 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          713.6892655367232,
+          204.10734463276836
+        ],
+        [
+          401,
+          449
+        ],
+        [
+          394,
+          449
+        ],
+        [
+          97.30508474576271,
+          185.4632768361582
+        ],
+        [
+          408.6045197740113,
+          56.64971751412429
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "i_can't_believe_this_guy_played_the_grob_gambit_vs._the_great_carlini!-k0rdhylrgr4.mkv-11024.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

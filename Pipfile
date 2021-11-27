@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+opencv-python = "*"
+sklearn = "*"
+scikit-image = "*"
+click = "*"
+torch = "*"
+torchvision = "*"
+chess = "*"
+torchsummary = "*"
+numpy = "*"
+
+[dev-packages]
+line-profiler = "*"
+jupyterlab = "*"
+labelimg = "*"
+labelme2coco = "*"
+pycocotools = "*"
+albumentations = "*"
+
+[requires]

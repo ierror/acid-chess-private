@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          354.9322033898305,
+          409.19209039548025
+        ],
+        [
+          587.7005649717514,
+          356.08474576271186
+        ],
+        [
+          481.4858757062147,
+          303.5423728813559
+        ],
+        [
+          293.3502824858757,
+          338.00564971751413
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "the_game_that_made_magnus_carlsen_the_world_rapid_champion_2019-6o3weoim4m8.mp4-5920.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

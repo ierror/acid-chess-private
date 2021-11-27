@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          284.8757062146893,
+          397.8926553672316
+        ],
+        [
+          558.8870056497175,
+          374.728813559322
+        ],
+        [
+          476.96610169491527,
+          303.5423728813559
+        ],
+        [
+          261.14689265536725,
+          319.361581920904
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "magnus_carlsen_spends_40_seconds_to_make_his_first_move_against_ian_nepomniachtchi-f3gr34aokta.mkv-10241.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

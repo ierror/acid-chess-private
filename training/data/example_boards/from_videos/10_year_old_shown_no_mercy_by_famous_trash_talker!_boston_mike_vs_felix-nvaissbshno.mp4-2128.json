@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          297.3050847457627,
+          441.3954802259887
+        ],
+        [
+          548.1525423728814,
+          443.090395480226
+        ],
+        [
+          519.3389830508474,
+          334.0508474576271
+        ],
+        [
+          322.1638418079096,
+          332.35593220338984
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "10_year_old_shown_no_mercy_by_famous_trash_talker!_boston_mike_vs_felix-nvaissbshno.mp4-2128.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

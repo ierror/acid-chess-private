@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          244.76271186440678,
+          435.180790960452
+        ],
+        [
+          541.3728813559322,
+          436.31073446327684
+        ],
+        [
+          519.3389830508474,
+          374.1638418079096
+        ],
+        [
+          258.3220338983051,
+          372.4689265536723
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "you will become fan of carlsen-7520.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

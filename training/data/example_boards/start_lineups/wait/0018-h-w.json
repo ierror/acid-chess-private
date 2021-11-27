@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          149.33333333333337,
+          560.3333333333334
+        ],
+        [
+          322.66666666666674,
+          1108.6666666666667
+        ],
+        [
+          1444.3333333333335,
+          1012
+        ],
+        [
+          1122.6666666666667,
+          497
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "0018-h-w.jpg",
+  "imageHeight": 1600,
+  "imageWidth": 1600,
+  "imageData": null
+}
