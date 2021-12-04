@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          273.01129943502826,
+          361.1694915254237
+        ],
+        [
+          542.5028248587571,
+          354.3898305084746
+        ],
+        [
+          518.7740112994351,
+          153.25988700564972
+        ],
+        [
+          278.66101694915255,
+          158.34463276836158
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "fide_world_championship_match___game_1___nepomniachtchi-carlsen_[q1xflbjmd0y].mp4-54889.jpeg",
+  "imageData": null,
+  "imageHeight": 450,
+  "imageWidth": 800
+}

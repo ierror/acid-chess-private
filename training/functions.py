@@ -94,7 +94,9 @@ class ChessBoardsDataSet(torch.utils.data.Dataset):
         transform = A.Compose([
             A.Rotate(limit=45, border_mode=4),
             A.VerticalFlip(),
-            A.HorizontalFlip()
+            A.HorizontalFlip(),
+            #A.OpticalDistortion(),
+            A.Normalize((0.1, 0.1, 0.1), (0.5, 0.5, 0.5), max_pixel_value=190.0, always_apply=True)  #max_pixel_value=190.0, 
         ])
         transformed = transform(image=np.array(img), mask=mask, box=boxes[0])
 
@@ -108,7 +110,7 @@ class ChessBoardsDataSet(torch.utils.data.Dataset):
         target["iscrowd"] = iscrowd
 
         img = F.to_tensor(transformed["image"])
-        img = F.normalize(img, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        #img = F.normalize(img, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         img = F.convert_image_dtype(img)
 
         return img, target

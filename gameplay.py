@@ -1,80 +1,136 @@
 #!/usr/bin/env python3
-# model = MyModel().to(device)
+import io
+import os
+from statistics import mean
+
+import chess.engine
+import chess.pgn
+import chess.svg
 import numpy as np
-
+from cairosvg import svg2png
 from cv2 import cv2
+from gtts import gTTS
+from playsound import playsound
 
-from lib.board import Detector, Board, Square
+from lib.board import Detector, Board, Squares, Square
+from lib.game import Game
 from lib.opencv_helper import four_point_transform
 
-CAMERA_NUM = 1
+PROGRAM_NAME = "Acid Chess"
+CHESSBOT = "Acid"
 
-detector = Detector(debug=True)
+# Game settings
+GAME = {
+    "event": "Testerei",
+    "round": 1,
+    "site": "Küche",
+    "date": "2021.11.02",
+    "white": "Gregor",
+    "black": "Bernhard",
+}
 
-# print(detector.detect_board_corners(cv2.imread("training/data/example_boards/start_lineups/0001-h-w.jpg")))
-# print(detector.detect_board_corners(cv2.imread("training/data/example_boards/gameplay/0002.jpeg")))
-# print(detector.detect_board_corners(cv2.imread("training/data/example_boards/gameplay/0003.jpg")))
+ENGINE_COLOR = chess.WHITE  # chess.WHITE, chess.BLACK, None
+if ENGINE_COLOR is not None:
+    GAME = {**GAME, **{
+        "engine_color": ENGINE_COLOR,
+        "engine_depth": 2,
+        "engine_time": 10,  # in seconds
+        "engine_level": 5,  # 0-20
+    }}
 
+LOAD_EXISTING = False
+DEBUG = True
+CAMERA_NUM = 2
 
-# exit(0)
-
-detector = Detector()
-
-cap = cv2.VideoCapture('DSCF2111.mov')
+cap = cv2.VideoCapture("DSCF2111.mov")  # "DSCF2111.mov", CAMERA_NUM
 if not cap.isOpened():
     raise RuntimeError("Error opening video stream or file")
 
-
-i = 0
-previous_board_image = None
+frame_nr = -1
 board_detected = False
 corners = None
 skip_until = 0
-detect_orientation_todo = True
-
-board_orientation = None
-top_left_piece_color = None
+previous_board_image = None
 hand_over_board = False
+last_engine_move_round = -1
+last_frames = []
+MAX_LAST_FRAMES = 5
+debug_text = None
+lighting_conditions_diffs = []
+VERSION = io.open("./VERSION").readline().strip()
 
+game = Game(**GAME)
 board = Board()
+detector = Detector(debug=False)
+
+SAVE_PATH = f"games/{game.date.replace('.', '-')}_{game.event.lower().replace(' ', '_')}-{game.round:02d}/"
+if not LOAD_EXISTING:
+    os.mkdir(SAVE_PATH)
+
+GAME_STATE_PATH = f"{SAVE_PATH}gamestate.json"
+
+if LOAD_EXISTING:
+    game.load(GAME_STATE_PATH)
+    # TODO: set moves from pgn
+    board.set_board_fen(game.board_fen)
+    board.a1_corner = tuple(game.a1_corner)
+    print(board)
+
+# start the engine
+engine = None
+if ENGINE_COLOR is not None:
+    engine = chess.engine.SimpleEngine.popen_uci("stockfish")
+    engine.configure({"Skill Level": game.engine_level})
+    engine.configure({"Threads": 4})
+
+
+def say(text):
+    tts = gTTS(text=text, lang='en', tld="co.uk")
+    filename = "/tmp/move.mp3"
+    tts.save(filename)
+    playsound(filename)
+    os.remove(filename)
+
 
 while cap.isOpened():
-    # Capture current_frame-by-current_frame
+    frame_nr += 1
+
     ret, current_frame = cap.read()
     if not ret:
         break
 
     msg = ""
 
-    if i == 0:
+    if frame_nr == 0:
+        say("Detecting board corners")
         board_image = current_frame
-    elif i <= skip_until:
-        pass
+    elif frame_nr <= skip_until:
+        continue
     elif not board_detected:
         board_image, board_detected, corners, msg = detector.detect_board_corners(current_frame)
         if not board_detected:
-            skip_until += 10
+            skip_until += 2
             print(msg)
+        else:
+            say("Detecting board orientation")
+    elif game.a1_corner and game.frame and frame_nr < game.frame - 2:
+        continue
     else:
-        skip_until += 3
-
         current_frame = detector.resize_image(current_frame)
         transformed = four_point_transform(current_frame, corners)
         debug, detected, squares, msg = detector.detect_squares(transformed, mode="squares_obj")
 
         if not detected:
             skip_until += 5
-            #board_image = debug
             continue
 
+        skip_until = frame_nr
         board_image = transformed.copy()
 
         # determine board orientation
-        if detect_orientation_todo:
-            board.update_squares(squares)
-            board.classify_squares()
-
+        if board.a1_corner is None:
             # 1. horizontal or vertical?
+            squares = Squares(squares)
             empty_squares_cnt = 0
             for row in range(0, 8):
                 for col in [2, 3, 4, 5]:
@@ -88,17 +144,10 @@ while cap.isOpened():
             else:
                 board_orientation = "horizontal"
 
-            # if board_orientation == "horizontal":
-            #    raise NotImplementedError()
-
             white_cnt = 0
             for row in range(0, 8):
                 for col in [0, 1]:
                     square = squares[row][col]
-                    # print(predicted_class, probability)
-                    # cv2.imshow(detector.output_window_name, square.image)
-                    # cv2.setWindowProperty(detector.output_window_name, cv2.WND_PROP_TOPMOST, 1)
-                    # cv2.waitKey()
                     if square.cl == square.CL_WHITE and square.cl_probability > 90:
                         white_cnt += 1
 
@@ -113,70 +162,156 @@ while cap.isOpened():
                     board.a1_corner = (0, 0)
                 else:
                     board.a1_corner = (7, 7)
-
-            print(f"Top left corner: {board.row_col_index_to_san(0, 0)}")
-
-            detect_orientation_todo = False
-
-        else:
-            if previous_board_image is None:
-                skip_until += 5
-                previous_board_image = board_image
-                continue
-
-            current_frame_gray = cv2.cvtColor(board_image, cv2.COLOR_BGR2GRAY)
-            previous_frame_gray = cv2.cvtColor(previous_board_image, cv2.COLOR_BGR2GRAY)
-            frame_diff = cv2.absdiff(current_frame_gray, previous_frame_gray)
-
-            diff = frame_diff.astype(np.uint8)
-            diff_perc = (np.count_nonzero(diff) * 100) / diff.size
-#            print(diff_perc)
-
-            if hand_over_board:
-                print("hand over board")
-
-                # move stopped
-                if diff_perc < 60:
-                    print("hand off board")
-                    board.update_squares(squares)
-                    board.classify_squares()
-
-                    diff = board.move_diff()
-                    print(board)
-                    if diff is not None:
-                       print(diff)
-
-                    hand_over_board = False
             else:
-                if diff_perc > 65:
-                    print("hand over board")
-                    hand_over_board = True
+                if top_left_piece_color == "white":
+                    board.a1_corner = (0, 7)
+                else:
+                    board.a1_corner = (7, 0)
 
-            skip_until += 2
-            previous_board_image = board_image.copy()
+            print(f"Top left corner: {chess.SQUARE_NAMES[board.a1_corner[0] * 8 + board.a1_corner[1]]}")
+
+            game.a1_corner = board.a1_corner
+            say("Calibrating to adapt to the current lighting conditions")
+            continue
+
+        # board orientation detected
+        if previous_board_image is None:
+            previous_board_image = board_image
+            last_frames.append(board_image.copy())
+            continue
+
+        if game.frame == frame_nr:
+            squares = Squares(squares)
+
+        # if the diff off last and current frame is low, there is no hand over board
+        # => check board for diffs to detect a move
+        frame_diff = cv2.cvtColor(board_image, cv2.COLOR_BGR2GRAY)
+        for last_frame in last_frames:
+            last_frame = cv2.cvtColor(last_frame, cv2.COLOR_BGR2GRAY)
+            frame_diff = cv2.absdiff(frame_diff, last_frame)
+
+        frame_diff = cv2.adaptiveThreshold(frame_diff, 50, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 101, 2)
+        diff = frame_diff.astype(np.uint8)
+        diff_perc = 100 - (np.count_nonzero(diff) * 100) / diff.size
+
+        # calibrate
+        if len(lighting_conditions_diffs) < 50:
+            lighting_conditions_diffs.append(diff_perc)
+            if len(lighting_conditions_diffs) == 49:
+                say("Calibrated, let the game begin!")
+            continue
+
+        previous_board_image = board_image.copy()
+        last_frames.append(board_image.copy())
+        last_frames = last_frames[-MAX_LAST_FRAMES:]
+
+        debug_text = None
+        moved = False
+        if diff_perc < mean(lighting_conditions_diffs) + 3:
+            squares = Squares(squares)
+            squares.sort(board.a1_corner)
+            move = board.diff(squares)
+            if move is not None:
+                board.push(move)
+                moved = True
+                game.update(frame_nr, board.board_fen())
+                game.persist(GAME_STATE_PATH)
+                playsound("./351518__mh2o__chess-move-on-alabaster.wav")
+                print(board)
+                print("")
+
+                # write board svg
+                svg2png(bytestring=chess.svg.board(board), write_to=f'{SAVE_PATH}board_rendered.png')
+
+                # check?
+                if (engine and board.turn != game.engine_color) or not engine:
+                    if board.is_check():
+                        say("check")
+
+                # game over?
+                outcome = board.outcome()
+                if outcome is not None:
+                    if outcome.termination == chess.Termination.CHECKMATE:
+                        say("game over, checkmate!")
+                    elif outcome.termination == chess.Termination.STALEMATE:
+                        say("game over, stalemate!")
+                    elif outcome.termination == chess.Termination.INSUFFICIENT_MATERIAL:
+                        say("game over, insufficient material!")
+                    elif outcome.termination == chess.Termination.FIVEFOLD_REPETITION:
+                        say("game over, fivefold repetition!")
+                    elif outcome.termination == chess.Termination.THREEFOLD_REPETITION:
+                        say("game over, threefold repetition!")
+                    elif outcome.termination == chess.Termination.VARIANT_WIN:
+                        say("game over, variant win!")
+                    elif outcome.termination == chess.Termination.VARIANT_LOSS:
+                        say("game over, variant loss!")
+                    elif outcome.termination == chess.Termination.VARIANT_DRAW:
+                        say("game over, variant draw!")
+                    exit(0)
+
+                # write pgn
+                # TODO: move to Game()
+                pgn = chess.pgn.Game()
+                pgn.headers["ProgramName"] = PROGRAM_NAME
+                pgn.headers["ProgramVersion"] = VERSION
+                for name, value in GAME.items():
+                    name = name.replace("_", " ").title().replace(" ", "")
+                    pgn.headers[name] = str(value)
+                    if outcome is not None:
+                        if outcome.winner == chess.WHITE:
+                            pgn.headers["Result"] = "1-0"
+                        else:
+                            pgn.headers["Result"] = "0-1"
+                pgn.add_line(board.move_stack)
+                print(pgn, file=io.open(f"{SAVE_PATH}/game.pgn", "w"), end="\n\n")
+
+            # engine move
+            if engine and (moved or len(board.move_stack) > last_engine_move_round):
+                if board.turn == game.engine_color:
+                    result = engine.play(board, chess.engine.Limit(depth=game.engine_depth, time=game.engine_time))
+
+                    from_square = chess.SQUARE_NAMES[result.move.from_square]
+                    to_square = chess.SQUARE_NAMES[result.move.to_square]
+                    say(f"{from_square} to {to_square}")
+                    print("engine move:", f"{from_square} to {to_square}")
+                    last_engine_move_round = len(board.move_stack)
+
+            if not hand_over_board:
+                skip_until += 4
+            hand_over_board = False
+        else:
+            hand_over_board = True
+            debug_text = str(round(diff_perc))
 
         for column in squares:
             for s in column:
-                board_image = cv2.circle(board_image, (int(s.pt1.x), int(s.pt1.y)), 5, (255, 0, 255), -1)
-                board_image = cv2.circle(board_image, (int(s.pt2.x), int(s.pt2.y)), 5, (255, 0, 255), -1)
-                #text = "+"
-                #if s.cl == Square.CL_EMPTY and s.cl_probability > 80:
-                #    text = "-"
-                #
-                #board_image = cv2.putText(board_image, text,
-                #                          (int(s.pt1.x + 25), int(s.pt2.y - 25)),
-                #                          cv2.FONT_ITALIC, 1, (255, 255, 0), cv2.LINE_AA)
+                board_image = cv2.circle(board_image, (int(s.pt1.x), int(s.pt1.y)), 2, (255, 0, 255), -1)
+                board_image = cv2.circle(board_image, (int(s.pt2.x), int(s.pt2.y)), 2, (255, 0, 255), -1)
+                if debug_text is None:
+                    debug_text = str(round(s.cl_probability))
+                if s.cl == Square.CL_EMPTY:
+                    board_image = cv2.putText(board_image, debug_text,
+                                              (int(s.pt1.x + 25), int(s.pt2.y - 25)),
+                                              cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.0, (255, 255, 0), )
+                elif s.cl == Square.CL_BLACK:
+                    board_image = cv2.putText(board_image, debug_text,
+                                              (int(s.pt1.x + 25), int(s.pt2.y - 25)),
+                                              cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.0, (255, 255, 255), )
+                else:
+                    board_image = cv2.putText(board_image, debug_text,
+                                              (int(s.pt1.x + 25), int(s.pt2.y - 25)),
+                                              cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.0, (0, 0, 0), )
 
-    cv2.imshow(detector.output_window_name, board_image)
-    cv2.setWindowProperty(detector.output_window_name, cv2.WND_PROP_TOPMOST, 1)
+    if frame_nr % 5 == 0:
+        cv2.imwrite(f"{SAVE_PATH}/debug.png", board_image)
 
-    if cv2.waitKey(25):
-        if 0xFF == ord('q'):
-            break
-        if 0xFF == ord('r'):
-            board_detected = False
-
-    i += 1
+    if DEBUG:
+        cv2.imshow(detector.output_window_name, board_image)
+        cv2.setWindowProperty(detector.output_window_name, cv2.WND_PROP_TOPMOST, 1)
+        cv2.waitKey(1)
 
 cap.release()
 cv2.destroyAllWindows()
+
+if engine:
+    engine.quit()

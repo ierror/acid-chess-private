@@ -4,14 +4,15 @@ from glob import glob
 from pathlib import Path
 from tkinter import *
 from PIL import ImageTk, Image
+from uuid import uuid4
 
 import click
 import numpy as np
 from cv2 import cv2
 
-from lib.board import Detector
+from lib.board import Detector, Squares, Square
 
-OUTPUT_DIR = "training/data/squares/labeled/"
+OUTPUT_DIR = "training/data/squares/sortme/"
 
 
 # ./cli_tools.py board-to-squares --image-path training/data/example_boards/0005.jpg --is-start-pos 1 --orientation h --black-or-white-first w
@@ -63,47 +64,25 @@ def board_to_squares(image_path, debug):
             click.echo(f"Unable to detect_board_corners: {msg}")
             continue
 
-        debug, detected, squares, msg = detector.detect_squares(warped, mode="images")
+        debug, detected, squares, msg = detector.detect_squares(warped, mode="squares_obj")
         if not detected:
             click.echo(f"Unable to detect_squares: {msg}")
             continue
 
-        print(msg)
+        squares = Squares(squares)
+        squares.sort(a1_corner=(0,0))
 
-        # 0001-h-w.jpg => 0001, h, w
-        file_input_name = os.path.basename(image_path)
-        file_input_name = os.path.splitext(file_input_name)[0]
-        horizontal_or_vertical, top_left_piece_color = file_input_name.split("-")[-2:]
-
-        if top_left_piece_color == "b":
-            top_left_piece_color = "black"
-            bottom_left_piece_color = "white"
-        elif top_left_piece_color == "w":
-            top_left_piece_color = "white"
-            bottom_left_piece_color = "black"
-        else:
-            raise RuntimeError(f"Wrong piece color label for image {image_path}")
-
-        for row_index, row in enumerate(squares):
-            for col_index, square in enumerate(row):
+        for square in squares.get_flat():
+            if square.cl == Square.CL_EMPTY:
                 label = "empty"
-                if horizontal_or_vertical == "h":
-                    if row_index in [0, 1]:
-                        label = top_left_piece_color
-                    elif row_index in [6, 7]:
-                        label = bottom_left_piece_color
-                elif horizontal_or_vertical == "v":
-                    if col_index in [0, 1]:
-                        label = top_left_piece_color
-                    elif col_index in [6, 7]:
-                        label = bottom_left_piece_color
-                else:
-                    raise RuntimeError(f"Wrong v/h color label for image {image_path}")
-
-                output_path = os.path.join(OUTPUT_DIR, label, f"{file_input_name}_{row_index}_{col_index}.jpeg")
-                Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
-                click.echo(output_path)
-                cv2.imwrite(output_path, square.image)
+            elif square.cl == Square.CL_WHITE:
+                label = "white"
+            elif square.cl == Square.CL_BLACK:
+                label = "black"
+            output_path = os.path.join(OUTPUT_DIR, label, f"{uuid4()}.jpg")
+            Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+            click.echo(output_path)
+            cv2.imwrite(output_path, square.image)
 
 
 @cli.command()
@@ -152,29 +131,29 @@ def video_to_images(video_path, debug):
     cv2.destroyAllWindows()
 
 
-@cli.command()
-@click.option("--image-path", type=str, required=False)
-def hough_parameter_tuner(image_path):
-    root = Tk("Hough Tuner")
-    image = ImageTk.PhotoImage(Image.open(image_path))
-
-
-    # canny input
-    labelframe = LabelFrame(root, text="Canny")
-    label_widget = Label(labelframe, text="Child widget of the LabelFrame")
-    labelframe.pack(padx=10, pady=10, side="left")
-    label_widget.pack(side="left")
-
-    # hough lines input
-    labelframe = LabelFrame(root, text="HoughLines")
-    label_widget = Label(labelframe, text="Child widget of the LabelFrame")
-    labelframe.pack(padx=10, pady=10, side="right")
-    label_widget.pack(side="right")
-
-    image_label = Label(root, image=image)
-    image_label.pack()
-
-    root.mainloop()
+# @cli.command()
+# @click.option("--image-path", type=str, required=False)
+# def hough_parameter_tuner(image_path):
+#     root = Tk("Hough Tuner")
+#     image = ImageTk.PhotoImage(Image.open(image_path))
+#
+#
+#     # canny input
+#     labelframe = LabelFrame(root, text="Canny")
+#     label_widget = Label(labelframe, text="Child widget of the LabelFrame")
+#     labelframe.pack(padx=10, pady=10, side="left")
+#     label_widget.pack(side="left")
+#
+#     # hough lines input
+#     labelframe = LabelFrame(root, text="HoughLines")
+#     label_widget = Label(labelframe, text="Child widget of the LabelFrame")
+#     labelframe.pack(padx=10, pady=10, side="right")
+#     label_widget.pack(side="right")
+#
+#     image_label = Label(root, image=image)
+#     image_label.pack()
+#
+#     root.mainloop()
 
 
 if __name__ == "__main__":

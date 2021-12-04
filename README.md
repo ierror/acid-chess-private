@@ -1,4 +1,5 @@
-https://www.mdpi.com/2073-431X/8/1/14/pdf
+
+##
 
 # 1
 0.03697541178691955
@@ -19,6 +20,9 @@ Epoch: [75] Total time: 0:02:03 (2.3691 s / it)                                 
 
 
 # 5
-Epoch    11: reducing learning rate of group 0 to 3.7500e-04.  loss_mask=0.07087732615092626
+Epoch    21: reducing learning rate of group 0 to 3.7500e-04. 0.08845961667024173
+
+model saved for loss_mask=0.03692435562753907
+Epoch: [107]  [ 0/52]  eta: 0:00:59  lr: 0.000004  loss: 0.0616
 
 

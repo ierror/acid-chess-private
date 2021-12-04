@@ -14,7 +14,7 @@ run_command () {
 #run_command "sudo apt-get update"
 #run_command "sudo apt -y install cuda"
 #
-#rsync -va  --exclude '*boards.model*' --exclude 'tmp/*' --exclude '*.mov' --exclude '*.model' --exclude '*-checkpoint.ipynb' -e "ssh -i ~/.ssh/bernhard-aws.pem" . ubuntu@$SERVER:/home/ubuntu/
+#rsync -va  --exclude '*boards.model*' --exclude 'tmp/*' --exclude '*.mov' --exclude '*.model' --exclude '*-checkpoint.ipynb' -e "ssh -frame_cnt ~/.ssh/bernhard-aws.pem" . ubuntu@$SERVER:/home/ubuntu/
 #
 #run_command "sudo apt -y install python3-pip"
 #run_command "pip3 install pipenv importlib-resources"

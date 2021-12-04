@@ -13,6 +13,12 @@ torchvision = "*"
 chess = "*"
 torchsummary = "*"
 numpy = "*"
+albumentations = "*"
+joblib = "*"
+pyttsx3 = "*"
+cairosvg = "*"
+gtts = "*"
+playsound = "*"
 
 [dev-packages]
 line-profiler = "*"
@@ -20,6 +26,5 @@ jupyterlab = "*"
 labelimg = "*"
 labelme2coco = "*"
 pycocotools = "*"
-albumentations = "*"
 
 [requires]

@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          613.0714285714286,
+          1281.142857142857
+        ],
+        [
+          1673.7857142857142,
+          1282.9285714285713
+        ],
+        [
+          1575.5714285714284,
+          838.2857142857142
+        ],
+        [
+          818.4285714285713,
+          847.2142857142857
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "rematch_debug.jpg",
+  "imageData": null,
+  "imageHeight": 1430,
+  "imageWidth": 2534
+}
