@@ -156,5 +156,75 @@ def video_to_images(video_path, debug):
 #     root.mainloop()
 
 
+@cli.command()
+@click.option("--debug", is_flag=True, type=bool, default=False)
+def live_video_to_images(debug):
+    cap = cv2.VideoCapture(1)
+    if not cap.isOpened():
+        click.echo("Error opening video stream or file")
+
+    i = 0
+    frame_prev = None
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        target_width = 800
+        height, width = frame.shape[0:2]
+        size = (target_width, int(target_width / width * height))
+        frame = cv2.resize(frame, size)
+
+        if frame_prev is not None:
+            diff = cv2.absdiff(frame, frame_prev)
+            diff = diff.astype(np.uint8)
+            percentage = (np.count_nonzero(diff) * 100) / diff.size
+
+            image_path = f"training/data/example_boards/from_videos/sortme/{uuid4()}.jpeg"
+            click.echo(f"percentage={percentage}, writing image {image_path}...")
+            cv2.imwrite(image_path, frame)
+
+            detector = Detector(debug=debug)
+            warped, detected, corners, msg = detector.detect_board_corners(frame)
+            if not detected:
+                click.echo(f"Unable to detect_board_corners: {msg}")
+                continue
+
+            debug, detected, squares, msg = detector.detect_squares(warped, mode="squares_obj")
+            if not detected:
+                click.echo(f"Unable to detect_squares: {msg}")
+                continue
+
+            squares = Squares(squares)
+            squares.sort(a1_corner=(0, 0))
+
+            for square in squares.get_flat():
+                if square.cl == Square.CL_EMPTY:
+                    label = "empty"
+                elif square.cl == Square.CL_WHITE:
+                    label = "white"
+                elif square.cl == Square.CL_BLACK:
+                    label = "black"
+                output_path = os.path.join(OUTPUT_DIR, label, f"{uuid4()}.jpg")
+                Path(os.path.dirname(output_path)).mkdir(parents=True, exist_ok=True)
+                click.echo(output_path)
+                cv2.imwrite(output_path, square.image)
+            break
+
+        if debug:
+            cv2.imshow("debug", frame)
+            cv2.setWindowProperty("debug", cv2.WND_PROP_TOPMOST, 1)
+
+            if cv2.waitKey(25):
+                if 0xFF == ord('q'):
+                    break
+
+        frame_prev = frame
+        i += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 if __name__ == "__main__":
     cli()

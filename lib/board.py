@@ -14,7 +14,6 @@ from cv2.mat_wrapper import Mat
 from torchvision.transforms import functional as F
 
 from training.models import get_board_segmentation_model_instance, SquareClassificationModel
-from training.transforms import Normalize
 from .geometry import Line, Point
 from .opencv_helper import four_point_transform, order_points
 
@@ -391,13 +390,37 @@ class Board(chess.Board):
 
     def diff(self, squares_to_diff):
         cl_probability_mean = squares_to_diff.get_cl_probability_mean()
+        print(cl_probability_mean)
         squares_to_diff = list(squares_to_diff.get_flat())
+
+        # king and rook moved?
+        # => castling?
+        king_square = self.king(self.turn)
+        king_moved = squares_to_diff[king_square].cl == Square.CL_EMPTY
+        rook_moved = False
+        rook_squares = list(self.pieces(chess.ROOK, self.turn))
+        for square in rook_squares:
+            if squares_to_diff[square].cl == Square.CL_EMPTY:
+                rook_moved = True
+                break
+
+        if king_moved and rook_moved:
+            for move in self.generate_legal_moves():
+                square_from = squares_to_diff[move.from_square]
+                square_to = squares_to_diff[move.to_square]
+                if move.from_square == king_square and abs(move.from_square - move.to_square) == 2 \
+                        and (square_from.cl_probability / cl_probability_mean > 0.85) \
+                        and (square_to.cl_probability / cl_probability_mean > 0.85):
+                    return move
+            return None
+
+        # std move
         for move in self.generate_legal_moves():
             square_from = squares_to_diff[move.from_square]
             square_to = squares_to_diff[move.to_square]
             if square_from.cl == Square.CL_EMPTY and square_to.cl == self.turn \
-                    and (square_from.cl_probability / cl_probability_mean > 0.9) \
-                    and (square_to.cl_probability / cl_probability_mean > 0.9):
+                    and (square_from.cl_probability / cl_probability_mean > 0.85) \
+                    and (square_to.cl_probability / cl_probability_mean > 0.85):
                 return move
 
 
@@ -424,7 +447,7 @@ class Square:
             torchvision.transforms.CenterCrop(95),
             torchvision.transforms.Resize(80),
             torchvision.transforms.ToTensor(),
-            Normalize(),
+            # Normalize(),
         ])(image)
         return image.view(1, 3, 80, 80).to(torch_device)
 
@@ -469,7 +492,7 @@ class Squares:
     def square_classification_model(self):
         # TODO
         model = SquareClassificationModel()
-        model.load_state_dict(torch.load('training/model_10.pth', map_location=torch_device))
+        model.load_state_dict(torch.load('training/model_120.pth', map_location=torch_device))
         model.eval()
         return model
 

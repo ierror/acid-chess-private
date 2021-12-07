@@ -2,6 +2,7 @@
 import io
 import os
 from statistics import mean
+from uuid import uuid4
 
 import chess.engine
 import chess.pgn
@@ -21,28 +22,30 @@ CHESSBOT = "Acid"
 
 # Game settings
 GAME = {
-    "event": "Testerei",
+    "event": "debug",
     "round": 1,
-    "site": "Küche",
-    "date": "2021.11.02",
-    "white": "Gregor",
-    "black": "Bernhard",
+    "site": "",
+    "date": "",
+    "white": "Bernhard",
+    "black": CHESSBOT,
 }
 
-ENGINE_COLOR = chess.WHITE  # chess.WHITE, chess.BLACK, None
+ENGINE_COLOR = chess.BLACK  # chess.WHITE, chess.BLACK, None
 if ENGINE_COLOR is not None:
     GAME = {**GAME, **{
         "engine_color": ENGINE_COLOR,
-        "engine_depth": 2,
-        "engine_time": 10,  # in seconds
-        "engine_level": 5,  # 0-20
+        "engine_depth": 3,
+        "engine_time": 5,  # in seconds
+        "engine_level": 4,  # 0-20
     }}
 
 LOAD_EXISTING = False
+COLLECT_TRAIN_DATA = False
 DEBUG = True
-CAMERA_NUM = 2
+CAMERA_NUM = 1
+DISABLE_VOICE = True
 
-cap = cv2.VideoCapture("DSCF2111.mov")  # "DSCF2111.mov", CAMERA_NUM
+cap = cv2.VideoCapture(CAMERA_NUM)  # "DSCF2111.mov", CAMERA_NUM
 if not cap.isOpened():
     raise RuntimeError("Error opening video stream or file")
 
@@ -57,6 +60,7 @@ last_frames = []
 MAX_LAST_FRAMES = 5
 debug_text = None
 lighting_conditions_diffs = []
+move_to_verify = None
 VERSION = io.open("./VERSION").readline().strip()
 
 game = Game(**GAME)
@@ -71,8 +75,9 @@ GAME_STATE_PATH = f"{SAVE_PATH}gamestate.json"
 
 if LOAD_EXISTING:
     game.load(GAME_STATE_PATH)
-    # TODO: set moves from pgn
-    board.set_board_fen(game.board_fen)
+    pgn = chess.pgn.read_game(io.open(f"{SAVE_PATH}/game.pgn"))
+    for move in pgn.mainline_moves():
+        board.push(move)
     board.a1_corner = tuple(game.a1_corner)
     print(board)
 
@@ -85,6 +90,9 @@ if ENGINE_COLOR is not None:
 
 
 def say(text):
+    if DISABLE_VOICE:
+        print(text)
+        return
     tts = gTTS(text=text, lang='en', tld="co.uk")
     filename = "/tmp/move.mp3"
     tts.save(filename)
@@ -102,7 +110,6 @@ while cap.isOpened():
     msg = ""
 
     if frame_nr == 0:
-        say("Detecting board corners")
         board_image = current_frame
     elif frame_nr <= skip_until:
         continue
@@ -111,10 +118,8 @@ while cap.isOpened():
         if not board_detected:
             skip_until += 2
             print(msg)
-        else:
-            say("Detecting board orientation")
-    elif game.a1_corner and game.frame and frame_nr < game.frame - 2:
-        continue
+#    elif game.a1_corner and game.frame and frame_nr < game.frame - 2:
+#        continue
     else:
         current_frame = detector.resize_image(current_frame)
         transformed = four_point_transform(current_frame, corners)
@@ -171,7 +176,6 @@ while cap.isOpened():
             print(f"Top left corner: {chess.SQUARE_NAMES[board.a1_corner[0] * 8 + board.a1_corner[1]]}")
 
             game.a1_corner = board.a1_corner
-            say("Calibrating to adapt to the current lighting conditions")
             continue
 
         # board orientation detected
@@ -194,26 +198,42 @@ while cap.isOpened():
         diff = frame_diff.astype(np.uint8)
         diff_perc = 100 - (np.count_nonzero(diff) * 100) / diff.size
 
-        # calibrate
-        if len(lighting_conditions_diffs) < 50:
-            lighting_conditions_diffs.append(diff_perc)
-            if len(lighting_conditions_diffs) == 49:
-                say("Calibrated, let the game begin!")
-            continue
-
         previous_board_image = board_image.copy()
         last_frames.append(board_image.copy())
         last_frames = last_frames[-MAX_LAST_FRAMES:]
 
+        # calibrate
+        if len(lighting_conditions_diffs) < 50:
+            lighting_conditions_diffs.append(diff_perc)
+            if len(lighting_conditions_diffs) == 50:
+                #say("Calibrated, let the game begin!")
+                pass
+            continue
+
         debug_text = None
         moved = False
-        if diff_perc < mean(lighting_conditions_diffs) + 3:
+        #print(diff_perc, mean(lighting_conditions_diffs) + 10)
+        if not hand_over_board and diff_perc > mean(lighting_conditions_diffs) + 10:
+            hand_over_board = True
+            print("hand over board")
+
+        if diff_perc < mean(lighting_conditions_diffs) + 5:
+            print("hand off board")
             squares = Squares(squares)
             squares.sort(board.a1_corner)
             move = board.diff(squares)
             if move is not None:
+                if move_to_verify:
+                    if move_to_verify != move:
+                        move_to_verify = None
+                        continue
+                else:
+                    move_to_verify = move
+                    continue
+
                 board.push(move)
                 moved = True
+                move_to_verify = None
                 game.update(frame_nr, board.board_fen())
                 game.persist(GAME_STATE_PATH)
                 playsound("./351518__mh2o__chess-move-on-alabaster.wav")
@@ -264,6 +284,19 @@ while cap.isOpened():
                             pgn.headers["Result"] = "0-1"
                 pgn.add_line(board.move_stack)
                 print(pgn, file=io.open(f"{SAVE_PATH}/game.pgn", "w"), end="\n\n")
+                hand_over_board = False
+
+                if COLLECT_TRAIN_DATA:
+                    for square in squares.get_flat():
+                        if square.cl_probability > 90:
+                            continue
+                        if square.cl == Square.CL_EMPTY:
+                            label = "empty"
+                        elif square.cl == Square.CL_WHITE:
+                            label = "white"
+                        elif square.cl == Square.CL_BLACK:
+                            label = "black"
+                        cv2.imwrite(f"training/data/squares/sortme/{label}/{uuid4()}.jpg", square.image)
 
             # engine move
             if engine and (moved or len(board.move_stack) > last_engine_move_round):
@@ -275,20 +308,16 @@ while cap.isOpened():
                     say(f"{from_square} to {to_square}")
                     print("engine move:", f"{from_square} to {to_square}")
                     last_engine_move_round = len(board.move_stack)
-
-            if not hand_over_board:
-                skip_until += 4
-            hand_over_board = False
         else:
-            hand_over_board = True
-            debug_text = str(round(diff_perc))
+            #debug_text = str(round(diff_perc))
+            pass
 
         for column in squares:
             for s in column:
                 board_image = cv2.circle(board_image, (int(s.pt1.x), int(s.pt1.y)), 2, (255, 0, 255), -1)
                 board_image = cv2.circle(board_image, (int(s.pt2.x), int(s.pt2.y)), 2, (255, 0, 255), -1)
-                if debug_text is None:
-                    debug_text = str(round(s.cl_probability))
+                #if debug_text is None:
+                debug_text = str(round(s.cl_probability))
                 if s.cl == Square.CL_EMPTY:
                     board_image = cv2.putText(board_image, debug_text,
                                               (int(s.pt1.x + 25), int(s.pt2.y - 25)),

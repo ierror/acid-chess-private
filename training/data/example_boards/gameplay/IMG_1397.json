@@ -1,0 +1,34 @@
+{
+  "version": "4.5.13",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "corners",
+      "points": [
+        [
+          1136.75,
+          2622.0
+        ],
+        [
+          2818.0,
+          2568.875
+        ],
+        [
+          2502.375,
+          1518.875
+        ],
+        [
+          1318.0,
+          1537.625
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "polygon",
+      "flags": {}
+    }
+  ],
+  "imagePath": "IMG_1397.jpeg",
+  "imageData": null,
+  "imageHeight": 3024,
+  "imageWidth": 4032
+}

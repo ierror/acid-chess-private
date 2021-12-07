@@ -3,12 +3,9 @@ from typing import List, Tuple, Dict, Optional
 
 import torch
 import torchvision
-from scipy import ndimage
 from torch import nn, Tensor
 from torchvision.transforms import functional as F
 from torchvision.transforms import transforms as T
-
-
 
 
 def _flip_coco_person_keypoints(kps, width):
@@ -20,6 +17,7 @@ def _flip_coco_person_keypoints(kps, width):
     flipped_data[inds] = 0
     return flipped_data
 
+
 class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
@@ -29,17 +27,22 @@ class Compose:
             image, target = t(image, target)
         return image, target
 
+
 class Normalize(torch.nn.Module):
     def __init__(self, inplace=False):
         super().__init__()
         self.inplace = inplace
 
     def forward(self, tensor: Tensor) -> Tensor:
-        mean, std = tensor.mean([1,2]), tensor.std([1,2])
-        return F.normalize(tensor, mean, std, self.inplace)
+        mean, std = tensor.mean([1, 2]), tensor.std([1, 2])
+        try:
+            return F.normalize(tensor, mean, std, self.inplace)
+        except ValueError:
+            return F.normalize(tensor, [0.5, 0.5, 0.5], [0.5, 0.5, 0.5], self.inplace)
 
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'
+
 
 class RandomHorizontalFlip(T.RandomHorizontalFlip):
     def forward(
