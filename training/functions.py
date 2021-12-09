@@ -96,7 +96,7 @@ class ChessBoardsDataSet(torch.utils.data.Dataset):
             A.VerticalFlip(),
             A.HorizontalFlip(),
             #A.OpticalDistortion(),
-            A.Normalize((0.1, 0.1, 0.1), (0.5, 0.5, 0.5), max_pixel_value=190.0, always_apply=True)  #max_pixel_value=190.0, 
+            #A.Normalize((0.1, 0.1, 0.1), (0.5, 0.5, 0.5), max_pixel_value=190.0, always_apply=True)  #max_pixel_value=190.0, 
         ])
         transformed = transform(image=np.array(img), mask=mask, box=boxes[0])
 

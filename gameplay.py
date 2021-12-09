@@ -30,7 +30,7 @@ GAME = {
     "black": CHESSBOT,
 }
 
-ENGINE_COLOR = chess.BLACK  # chess.WHITE, chess.BLACK, None
+ENGINE_COLOR = None  # chess.WHITE, chess.BLACK, None
 if ENGINE_COLOR is not None:
     GAME = {**GAME, **{
         "engine_color": ENGINE_COLOR,
@@ -42,8 +42,8 @@ if ENGINE_COLOR is not None:
 LOAD_EXISTING = False
 COLLECT_TRAIN_DATA = False
 DEBUG = True
-CAMERA_NUM = 1
-DISABLE_VOICE = True
+CAMERA_NUM = 2
+DISABLE_VOICE = False
 
 cap = cv2.VideoCapture(CAMERA_NUM)  # "DSCF2111.mov", CAMERA_NUM
 if not cap.isOpened():
@@ -218,7 +218,7 @@ while cap.isOpened():
             print("hand over board")
 
         if diff_perc < mean(lighting_conditions_diffs) + 5:
-            print("hand off board")
+            #print("hand off board")
             squares = Squares(squares)
             squares.sort(board.a1_corner)
             move = board.diff(squares)

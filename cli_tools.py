@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import os
+import tkinter.ttk as ttk
 from glob import glob
 from pathlib import Path
-from tkinter import *
-from PIL import ImageTk, Image
 from uuid import uuid4
 
 import click
 import numpy as np
+from PIL import ImageTk, Image
+from PIL.ImageTk import PhotoImage
 from cv2 import cv2
 
 from lib.board import Detector, Squares, Square
@@ -70,7 +71,7 @@ def board_to_squares(image_path, debug):
             continue
 
         squares = Squares(squares)
-        squares.sort(a1_corner=(0,0))
+        squares.sort(a1_corner=(0, 0))
 
         for square in squares.get_flat():
             if square.cl == Square.CL_EMPTY:
@@ -129,31 +130,6 @@ def video_to_images(video_path, debug):
 
     cap.release()
     cv2.destroyAllWindows()
-
-
-# @cli.command()
-# @click.option("--image-path", type=str, required=False)
-# def hough_parameter_tuner(image_path):
-#     root = Tk("Hough Tuner")
-#     image = ImageTk.PhotoImage(Image.open(image_path))
-#
-#
-#     # canny input
-#     labelframe = LabelFrame(root, text="Canny")
-#     label_widget = Label(labelframe, text="Child widget of the LabelFrame")
-#     labelframe.pack(padx=10, pady=10, side="left")
-#     label_widget.pack(side="left")
-#
-#     # hough lines input
-#     labelframe = LabelFrame(root, text="HoughLines")
-#     label_widget = Label(labelframe, text="Child widget of the LabelFrame")
-#     labelframe.pack(padx=10, pady=10, side="right")
-#     label_widget.pack(side="right")
-#
-#     image_label = Label(root, image=image)
-#     image_label.pack()
-#
-#     root.mainloop()
 
 
 @cli.command()
@@ -224,6 +200,52 @@ def live_video_to_images(debug):
 
     cap.release()
     cv2.destroyAllWindows()
+
+
+@cli.command()
+@click.option("--image-path", type=str, required=False)
+def hough_parameter_tuner(image_path):
+    img = Image.open(image_path)
+    img_copy = img.copy()
+
+    #    labelImage = ttk.Label(frameMain)
+
+    # labelImage.bind('<Configure>', _resize_image)
+
+    frameMain = ttk.Frame()
+    frameSub = ttk.Frame(frameMain)
+    labelframeGaussianBlur = ttk.Labelframe(frameSub)
+    labelframeGaussianBlur.configure(height='200', text='GaussianBlur', width='200')
+    labelframeGaussianBlur.pack(side='left')
+    labelframeAdaptiveThreshold = ttk.Labelframe(frameSub)
+    labelframeAdaptiveThreshold.configure(height='200', text='AdaptiveThreshold', width='200')
+    labelframeAdaptiveThreshold.pack(side='left')
+    labelFrameCanny = ttk.Labelframe(frameSub)
+    labelFrameCanny.configure(height='200', text='Canny', width='200')
+    labelFrameCanny.pack(side='left')
+    labelframeHoughLinesP = ttk.Labelframe(frameSub)
+    labelframeHoughLinesP.configure(height='200', text='HoughLinesP', width='200')
+    labelframeHoughLinesP.pack(side='left')
+    frameSub.configure(height='200', width='200')
+    frameSub.pack(side='top')
+
+    labelImage = ttk.Label(frameMain, image=ImageTk.PhotoImage(img_copy))
+    labelImage.pack(expand='true', fill='both', padx='5', pady='5', side='left')
+    labelImage.configure(image=ImageTk.PhotoImage(img_copy))
+
+    # def _resize_image(event):
+    #     print(event.width, event.height)
+    #     new_width = event.width
+    #     new_height = event.height
+    #     img = img_copy.resize((new_width, new_height))
+    #     img = ImageTk.PhotoImage(img)
+    #     labelImage.configure(image=img)
+    #
+    # labelImage.bind('<Configure>', _resize_image)
+    frameMain.configure(height='800', width='600')
+    frameMain.grid(column='2', row='2', sticky='nw')
+
+    frameMain.mainloop()
 
 
 if __name__ == "__main__":

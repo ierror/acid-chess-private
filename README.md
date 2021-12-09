@@ -26,3 +26,10 @@ model saved for loss_mask=0.03692435562753907
 Epoch: [107]  [ 0/52]  eta: 0:00:59  lr: 0.000004  loss: 0.0616
 
 
+# 6 (transform)
+loss_mask=0.03603772188357094
+
+Epoch: [82]  [ 0/57]  eta: 0:01:09  lr: 0.000009  loss: 0.0818 (0.0818)  loss_classifier: 0.0187 (0.0187)  loss_box_reg: 0.0323 (0.0323)  loss_mask: 0.0278 (0.0278)  loss_objectness: 0.0004 (0.0004)  loss_rpn_box_reg: 0.0027 (0.0027)  time: 1.2109  data: 0.1957  max mem: 11317
+
+# 6 (optical distortion)
+

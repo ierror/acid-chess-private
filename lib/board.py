@@ -32,7 +32,7 @@ DETECTOR_PARAMETERS = [
             "rho": 1,
             "theta": np.pi / 180,
             "threshold": 120,
-            "minLineLength": 250,
+            "minLineLength": 100,
         }
     }, {
         "canny": {
@@ -45,11 +45,11 @@ DETECTOR_PARAMETERS = [
             "rho": 1,
             "theta": np.pi / 180,
             "threshold": 80,
-            "minLineLength": 250,
+            "minLineLength": 100,
         }
     }, {
         "canny": {
-            "threshold1": 40,
+            "threshold1": 20,
             "threshold2": 80,
             "apertureSize": 3,
             "L2gradient": True,
@@ -62,7 +62,7 @@ DETECTOR_PARAMETERS = [
         }
     }, {
         "canny": {
-            "threshold1": 150,
+            "threshold1": 10,
             "threshold2": 110,
             "apertureSize": 3,
             "L2gradient": True,
@@ -70,7 +70,7 @@ DETECTOR_PARAMETERS = [
         "hough": {
             "rho": 1,
             "theta": np.pi / 180,
-            "threshold": 10,
+            "threshold": 80,
             "minLineLength": 50,
         }
     }
@@ -104,7 +104,7 @@ class Detector:
         tensor_img = self.image
         tensor_img = Image.fromarray(tensor_img)
         transform = A.Compose([
-            A.Normalize((0.1, 0.1, 0.1), (0.5, 0.5, 0.5), max_pixel_value=190.0, always_apply=True)
+            #A.Normalize((0.1, 0.1, 0.1), (0.5, 0.5, 0.5), max_pixel_value=190.0, always_apply=True)
             # max_pixel_value=190.0,
         ])
         transformed = transform(image=np.array(tensor_img))
@@ -136,10 +136,10 @@ class Detector:
         # the second entry is the top-right, the third is the
         # bottom-right, and the fourth is the bottom-left
         board_edges = order_points(board_edges)
-        board_edges[0] = (board_edges[0][0] - 20, board_edges[0][1] - 20)
-        board_edges[1] = (board_edges[1][0] + 20, board_edges[1][1] - 20)
-        board_edges[2] = (board_edges[2][0] + 20, board_edges[2][1] + 20)
-        board_edges[3] = (board_edges[3][0] - 20, board_edges[3][1] + 20)
+        board_edges[0] = (board_edges[0][0] - 15, board_edges[0][1] - 15)
+        board_edges[1] = (board_edges[1][0] + 15, board_edges[1][1] - 15)
+        board_edges[2] = (board_edges[2][0] + 15, board_edges[2][1] + 15)
+        board_edges[3] = (board_edges[3][0] - 15, board_edges[3][1] + 15)
 
         if self.debug:
             for e in board_edges:
@@ -169,7 +169,10 @@ class Detector:
 
     def _detect_squares_with_parameter_set(self, warped, mode, parameter_set):
         gray = cv2.cvtColor(warped.copy(), cv2.COLOR_BGR2GRAY)
+        self.show_image(gray)
+
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        self.show_image(blurred)
 
         adaptiveThresh = cv2.adaptiveThreshold(blurred, 1024, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 125, 1)
         # adaptiveThresh = cv2.bitwise_not(adaptiveThresh)
@@ -390,7 +393,7 @@ class Board(chess.Board):
 
     def diff(self, squares_to_diff):
         cl_probability_mean = squares_to_diff.get_cl_probability_mean()
-        print(cl_probability_mean)
+        #print(cl_probability_mean)
         squares_to_diff = list(squares_to_diff.get_flat())
 
         # king and rook moved?
@@ -408,7 +411,8 @@ class Board(chess.Board):
             for move in self.generate_legal_moves():
                 square_from = squares_to_diff[move.from_square]
                 square_to = squares_to_diff[move.to_square]
-                if move.from_square == king_square and abs(move.from_square - move.to_square) == 2 \
+                if move.from_square == king_square and square_to.cl != Square.CL_EMPTY  \
+                        and abs(move.from_square - move.to_square) == 2 \
                         and (square_from.cl_probability / cl_probability_mean > 0.85) \
                         and (square_to.cl_probability / cl_probability_mean > 0.85):
                     return move
